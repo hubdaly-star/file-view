@@ -2,9 +2,7 @@ package cn.keking.utils;
 
 import org.jodconverter.core.util.OSUtils;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -28,9 +26,7 @@ public class LocalOfficeUtils {
         Properties properties = new Properties();
         String customizedConfigPath = ConfigUtils.getCustomizedConfigPath();
         try {
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(customizedConfigPath));
-            properties.load(bufferedReader);
-            ConfigUtils.restorePropertiesFromEnvFormat(properties);
+            properties = ConfigUtils.loadYamlProperties(customizedConfigPath);
         } catch (Exception ignored) {}
         String officeHome = properties.getProperty(OFFICE_HOME_KEY);
         if (officeHome != null && !DEFAULT_OFFICE_HOME_VALUE.equals(officeHome)) {

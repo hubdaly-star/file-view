@@ -1,6 +1,9 @@
 package cn.keking.utils;
 
 
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
+import org.springframework.core.io.FileSystemResource;
+
 import java.io.File;
 import java.util.Iterator;
 import java.util.Map;
@@ -70,7 +73,27 @@ public class ConfigUtils {
     public static String getCustomizedConfigPath() {
         String homePath = getHomePath();
         String separator = java.io.File.separator;
-        return homePath + separator + "config" + separator + "application.properties";
+        return homePath + separator + "config" + separator + "application.yml";
+    }
+
+    /**
+     * Load {@code application.yml} as flattened dotted-key properties, then resolve
+     * {@code ${ENV}} / {@code ${ENV:default}} placeholders the same way the historical
+     * .properties loader did.
+     */
+    public static Properties loadYamlProperties(String path) {
+        Properties properties = new Properties();
+        YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+        factory.setResources(new FileSystemResource(path));
+        Properties loaded = factory.getObject();
+        if (loaded != null) {
+            for (Map.Entry<Object, Object> entry : loaded.entrySet()) {
+                properties.setProperty(String.valueOf(entry.getKey()),
+                        entry.getValue() == null ? "" : String.valueOf(entry.getValue()));
+            }
+        }
+        restorePropertiesFromEnvFormat(properties);
+        return properties;
     }
 
     public synchronized static void restorePropertiesFromEnvFormat(Properties properties) {

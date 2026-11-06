@@ -8,6 +8,12 @@
 # Spring Cloud 同时只能有一个 ServiceRegistry：不要与 nacos profile 一起用于注册。
 ###############################################################################
 
-spring.cloud.discovery.enabled = true
-spring.cloud.servicecomb.discovery.enabled = true
-spring.cloud.servicecomb.config.enabled = false
+spring:
+  cloud:
+    discovery:
+      enabled: true
+    servicecomb:
+      discovery:
+        enabled: true
+      config:
+        enabled: false
