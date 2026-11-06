@@ -6,10 +6,7 @@
 spring:
   application:
     name: "${SPRING_APPLICATION_NAME:kkfileview}"
-  # 启用 Nacos 配置中心时取消下面两行注释（或使用 --spring.profiles.active=nacos）。
-  # optional: 表示连不上 Nacos 也不阻止启动。
-  # config:
-  #   import: "optional:nacos:${NACOS_CONFIG_DATA_ID:kkfileview.properties}?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true"
+  # Nacos 配置导入写在 application-nacos.yml，请用 --spring.profiles.active=nacos，不要只改 enabled。
   servlet:
     multipart:
 
@@ -53,24 +50,28 @@ spring:
   #
   # 默认全部关闭，不影响现有文件预览功能。没有 Nacos / CSE 时也可直接启动。
   #
-  # 启用方式（二选一，推荐只启用一个注册中心）：
-  #   1) 把下面对应 *.enabled 改为 true，并填写占位符
-  #   2) 启动参数：--spring.profiles.active=nacos  和/或  cse
-  #      （见同目录 application-nacos.yml / application-cse.yml）
+  # 唯一支持的启用方式（互斥，不要两个一起开）：
+  #   Nacos 配置中心 + 注册发现：--spring.profiles.active=nacos
+  #                            或 SPRING_PROFILES_ACTIVE=nacos
+  #   华为 CSE 注册发现：        --spring.profiles.active=cse
+  #                            或 SPRING_PROFILES_ACTIVE=cse
+  # 见同目录 application-nacos.yml / application-cse.yml。
   #
-  # Spring Cloud 的 ServiceRegistry 同时只能有一个实现。Nacos discovery 与 CSE
-  # 不要同时开启注册，否则实际注册行为不确定。
+  # 不要只改下面的 *.enabled / 环境变量。原因：
+  #   - Nacos 的 spring.config.import 只写在 nacos profile 里，没有它配置中心不会拉配置
+  #   - register-enabled 默认 false：即使误开 discovery.enabled 也不会向 Nacos 注册
+  #   - 两个 discovery.enabled 同时为 true 时启动会直接失败（Spring Cloud 只能有一个 ServiceRegistry）
   #
   # 版本：Spring Cloud Alibaba 2025.0.0.0 + Spring Cloud Huawei 1.11.15-2025.0.x
-  # Nacos 配置请用 spring.config.import（SCA 2025.0.x 仍可用 bootstrap，2025.1.x 已移除）
+  # Nacos 配置用 spring.config.import（写在 application-nacos.yml）。不使用 bootstrap。
   ###############################################################################
   cloud:
     discovery:
-      # 总开关：false 时不启用任何 DiscoveryClient 自动注册
-      enabled: "${KK_CLOUD_DISCOVERY_ENABLED:false}"
+      # 总开关：false 时不启用 DiscoveryClient。nacos / cse profile 会把它设为 true
+      enabled: false
     nacos:
 
-      # ---------- Nacos 公共连接（config / discovery 共用）----------
+      # ---------- Nacos 公共连接（config / discovery 共用；仅地址/账号可用环境变量覆盖）----------
       # 示例：127.0.0.1:8848  或  nacos.example.com:8848
       # SCA 2025.0.x 使用 public / 空 namespace 时，Nacos Server 需 3.x
       server-addr: "${NACOS_SERVER_ADDR:127.0.0.1:8848}"
@@ -78,8 +79,8 @@ spring:
       password: "${NACOS_PASSWORD:}"
       config:
 
-        # ---------- Nacos 配置中心（默认关闭）----------
-        enabled: "${NACOS_CONFIG_ENABLED:false}"
+        # ---------- Nacos 配置中心（默认关闭；nacos profile 会打开）----------
+        enabled: false
         import-check:
           enabled: false
         fail-fast: false
@@ -89,9 +90,11 @@ spring:
         file-extension: "${NACOS_CONFIG_FILE_EXTENSION:properties}"
         prefix: "${NACOS_CONFIG_PREFIX:kkfileview}"
       discovery:
-        # ---------- Nacos 服务注册 / 发现（默认关闭）----------
-        enabled: "${NACOS_DISCOVERY_ENABLED:false}"
-        register-enabled: "${NACOS_DISCOVERY_REGISTER_ENABLED:false}"
+        # ---------- Nacos 服务注册 / 发现（默认关闭；nacos profile 会打开）----------
+        # enabled：加载 Nacos Discovery 客户端；register-enabled：向 Nacos 注册本实例
+        # 两者默认都是 false。nacos profile 会同时设为 true（发现 + 注册）
+        enabled: false
+        register-enabled: false
         fail-fast: false
         namespace: "${NACOS_NAMESPACE:}"
         group: "${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}"
@@ -103,9 +106,10 @@ spring:
     servicecomb:
       discovery:
 
-        # ---------- 华为云 ServiceComb CSE 注册中心（默认关闭）----------
-        # 官方 discovery starter 会传递引入 governance/router；默认关闭以免拦截预览流量
-        enabled: "${CSE_DISCOVERY_ENABLED:false}"
+        # ---------- 华为云 ServiceComb CSE 注册中心（默认关闭；cse profile 会打开）----------
+        # enabled=true 时会注册本实例。governance/router 自动配置由 HuaweiGovernanceImportFilter
+        # 过滤（不能 Maven 排除：discovery 适配器实现了 router/governance 接口）
+        enabled: false
         # Exclusive engine 示例：https://192.168.0.10:30100  集群用逗号分隔
         address: "${CSE_REGISTRY_ADDRESS:http://127.0.0.1:30100}"
         appName: "${CSE_APPLICATION:kkfileview}"
@@ -117,6 +121,21 @@ spring:
         enabled: false
       dashboard:
         enabled: false
+      webmvc:
+        # 双保险：即使治理自动配置被加载，也不对预览 HTTP 限流/熔断/改写
+        rateLimiting:
+          enabled: false
+        identifierRateLimiting:
+          enabled: false
+        circuitBreaker:
+          enabled: false
+        bulkhead:
+          enabled: false
+        contextMapper:
+          enabled: false
+        publicKey:
+          consumerEnabled: false
+          providerEnabled: false
       service:
         name: "${CSE_SERVICE_NAME:kkfileview}"
         application: "${CSE_APPLICATION:kkfileview}"
