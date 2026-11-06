@@ -1,10 +1,18 @@
 ###############################################################################
-# Profile: nacos
-# 启用方式：--spring.profiles.active=nacos
-# 或环境变量 SPRING_PROFILES_ACTIVE=nacos
+# Profile: nacos（唯一支持的 Nacos 启用方式）
+#   --spring.profiles.active=nacos
+#   或环境变量 SPRING_PROFILES_ACTIVE=nacos
+#
+# 本 profile 会同时打开：
+#   - spring.cloud.discovery.enabled              总开关
+#   - spring.cloud.nacos.config.enabled
+#     + spring.config.import（optional:nacos:...） 配置中心，连不上也不阻止启动
+#   - spring.cloud.nacos.discovery.enabled
+#     + register-enabled=true                     发现 + 向 Nacos 注册本实例
 #
 # 请先把 Nacos 地址 / namespace / group / data-id / 账号换成实际值（勿提交真实密码）。
-# 该 profile 只打开 Nacos，不会打开华为 CSE。
+# 不要与 cse profile 一起激活：两个 ServiceRegistry 会在启动时 fail-fast。
+# 业务配置（ConfigConstants）以 Environment / Nacos 为准，本地 YAML 热加载在此 profile 下关闭。
 ###############################################################################
 
 spring:
@@ -18,7 +26,7 @@ spring:
         enabled: true
       discovery:
 
-        # Nacos 服务注册与发现
+        # Nacos 服务注册与发现（enabled 与 register-enabled 一起打开）
         enabled: true
         register-enabled: true
   config:

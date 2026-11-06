@@ -98,9 +98,14 @@
         <!--
           Huawei Cloud ServiceComb CSE registry (Spring Cloud Huawei 1.11.15-2025.0.x).
           Use the discovery starter only — the full spring-cloud-starter-huawei-service-engine
-          also pulls OpenFeign, Swagger, Hessian, dashboard and governance, which would
-          intercept kkFileView HTTP traffic. CSE config center is intentionally omitted;
-          Nacos remains the config center.
+          also pulls OpenFeign, Swagger, Hessian, dashboard and governance.
+
+          The discovery module still transitively depends on spring-cloud-huawei-governance
+          and spring-cloud-huawei-router. Those jars cannot be Maven-excluded: CSE
+          DiscoveryAutoConfiguration beans implement router Canary/ZoneAware adapters and
+          governance AuthenticationAdapter. HuaweiGovernanceImportFilter skips their
+          auto-config instead so preview HTTP is not rate-limited or rewritten.
+          CSE config center is omitted; Nacos remains the config center.
         -->
         <dependency>
             <groupId>com.huaweicloud</groupId>
@@ -384,9 +389,13 @@
                 </includes>
                 <filtering>false</filtering>
             </resource>
+            <!--
+              Do not Maven-filter config YAML: it uses Spring ${ENV:default} placeholders
+              that would otherwise be rewritten by the default ${...} delimiter.
+            -->
             <resource>
                 <directory>src/main/config</directory>
-                <filtering>true</filtering>
+                <filtering>false</filtering>
             </resource>
         </resources>
         <plugins>

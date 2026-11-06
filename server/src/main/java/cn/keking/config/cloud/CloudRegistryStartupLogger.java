@@ -8,9 +8,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 /**
- * Logs which cloud registry integrations are active. Spring Cloud allows only
- * one {@code ServiceRegistry} implementation, so enabling Nacos discovery and
- * CSE discovery together is warned against.
+ * Logs which cloud registry integrations are active after a successful start.
+ * Dual Nacos + CSE discovery is rejected earlier by {@link DualCloudRegistryGuard}.
+ *
+ * <p>Enable with {@code --spring.profiles.active=nacos} or {@code cse} (mutually exclusive).
  */
 @Component
 public class CloudRegistryStartupLogger implements ApplicationRunner {
@@ -26,17 +27,23 @@ public class CloudRegistryStartupLogger implements ApplicationRunner {
     @Value("${spring.cloud.nacos.discovery.enabled:false}")
     private boolean nacosDiscoveryEnabled;
 
+    @Value("${spring.cloud.nacos.discovery.register-enabled:false}")
+    private boolean nacosRegisterEnabled;
+
     @Value("${spring.cloud.servicecomb.discovery.enabled:false}")
     private boolean cseDiscoveryEnabled;
 
     @Override
     public void run(ApplicationArguments args) {
         LOGGER.info(
-                "Cloud integrations: discovery.enabled={}, nacos.config={}, nacos.discovery={}, cse.discovery={}",
-                discoveryEnabled, nacosConfigEnabled, nacosDiscoveryEnabled, cseDiscoveryEnabled);
-        if (nacosDiscoveryEnabled && cseDiscoveryEnabled) {
-            LOGGER.warn("Both Nacos discovery and Huawei CSE discovery are enabled. "
-                    + "Spring Cloud supports only one ServiceRegistry; keep a single registry for registration.");
+                "Cloud integrations: discovery.enabled={}, nacos.config={}, nacos.discovery={}, "
+                        + "nacos.register-enabled={}, cse.discovery={}",
+                discoveryEnabled, nacosConfigEnabled, nacosDiscoveryEnabled,
+                nacosRegisterEnabled, cseDiscoveryEnabled);
+        if (nacosDiscoveryEnabled) {
+            LOGGER.info("Nacos discovery is on (profile nacos). CSE discovery stays off.");
+        } else if (cseDiscoveryEnabled) {
+            LOGGER.info("Huawei CSE discovery is on (profile cse). Nacos discovery stays off.");
         }
     }
 }

@@ -3,6 +3,9 @@ package cn.keking.config;
 import cn.keking.utils.ConfigUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cloud.context.environment.EnvironmentChangeEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -12,11 +15,26 @@ import java.nio.file.*;
 import java.util.Properties;
 import java.util.concurrent.*;
 
+/**
+ * Bridges kkFileView's static {@link ConfigConstants} / {@link WatermarkConfigConstants}
+ * to either the local {@code application.yml} file watcher (default) or the Spring
+ * {@link Environment} when the {@code nacos} profile has turned on Nacos config.
+ *
+ * <p>Contract:
+ * <ul>
+ *   <li>Local-only (default): {@code @Value} injects Environment, then this component
+ *       re-reads {@code config/application.yml} and watches it for hot reload.</li>
+ *   <li>Nacos profile: skip the YAML overwrite so Nacos-backed Environment values win;
+ *       listen for {@link EnvironmentChangeEvent} to refresh static fields.</li>
+ * </ul>
+ */
 @Component
 public class ConfigRefreshComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigRefreshComponent.class);
     private static final long DEBOUNCE_DELAY_SECONDS = 5;
+    static final String NACOS_CONFIG_ENABLED_KEY = "spring.cloud.nacos.config.enabled";
 
+    private final Environment environment;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final ExecutorService watchServiceExecutor = Executors.newSingleThreadExecutor();
     private final Object lock = new Object();
@@ -25,10 +43,19 @@ public class ConfigRefreshComponent {
     private WatchService watchService;
     private volatile boolean running = true;
 
+    public ConfigRefreshComponent(Environment environment) {
+        this.environment = environment;
+    }
+
     @PostConstruct
     void init() {
         loadConfig();
-        watchServiceExecutor.submit(this::watchConfigFile);
+        if (isNacosConfigEnabled()) {
+            LOGGER.info("Nacos 配置中心已启用，业务配置从 Spring Environment 读取（含 Nacos），"
+                    + "并监听 EnvironmentChangeEvent；跳过本地 application.yml 文件监听以免覆盖远程配置");
+        } else {
+            watchServiceExecutor.submit(this::watchConfigFile);
+        }
     }
 
     @PreDestroy
@@ -43,6 +70,19 @@ public class ConfigRefreshComponent {
                 LOGGER.warn("关闭 WatchService 时发生异常", e);
             }
         }
+    }
+
+    @EventListener
+    public void onEnvironmentChange(EnvironmentChangeEvent event) {
+        if (!isNacosConfigEnabled()) {
+            return;
+        }
+        LOGGER.info("收到 EnvironmentChangeEvent，keys={}，从 Environment 刷新 ConfigConstants", event.getKeys());
+        loadConfigFromEnvironment();
+    }
+
+    boolean isNacosConfigEnabled() {
+        return Boolean.TRUE.equals(environment.getProperty(NACOS_CONFIG_ENABLED_KEY, Boolean.class, Boolean.FALSE));
     }
 
     private void watchConfigFile() {
@@ -111,6 +151,27 @@ public class ConfigRefreshComponent {
     }
 
     private void loadConfig() {
+        if (isNacosConfigEnabled()) {
+            loadConfigFromEnvironment();
+        } else {
+            loadConfigFromLocalYaml();
+        }
+    }
+
+    private void loadConfigFromEnvironment() {
+        synchronized (lock) {
+            try {
+                Properties properties = new EnvironmentBackedProperties(environment);
+                updateConfigConstants(properties);
+                setWatermarkConfig(properties);
+                LOGGER.info("已从 Spring Environment 加载业务配置");
+            } catch (Exception e) {
+                LOGGER.error("从 Environment 读取配置异常", e);
+            }
+        }
+    }
+
+    private void loadConfigFromLocalYaml() {
         synchronized (lock) {
             try {
                 String configFilePath = ConfigUtils.getCustomizedConfigPath();
@@ -264,7 +325,8 @@ public class ConfigRefreshComponent {
     }
 
     private String getProperty(Properties properties, String key, String defaultValue) {
-        return properties.getProperty(key, defaultValue).trim();
+        String value = properties.getProperty(key, defaultValue);
+        return value == null ? null : value.trim();
     }
 
     private void setWatermarkConfig(Properties properties) {
@@ -278,5 +340,27 @@ public class ConfigRefreshComponent {
         WatermarkConfigConstants.setWatermarkWidthValue(getProperty(properties, "watermark.width", WatermarkConfigConstants.DEFAULT_WATERMARK_WIDTH));
         WatermarkConfigConstants.setWatermarkHeightValue(getProperty(properties, "watermark.height", WatermarkConfigConstants.DEFAULT_WATERMARK_HEIGHT));
         WatermarkConfigConstants.setWatermarkAngleValue(getProperty(properties, "watermark.angle", WatermarkConfigConstants.DEFAULT_WATERMARK_ANGLE));
+    }
+
+    /**
+     * {@link Properties} view over Spring {@link Environment} so Nacos / profile values
+     * are applied with the same binder as the local YAML path.
+     */
+    static final class EnvironmentBackedProperties extends Properties {
+        private final Environment environment;
+
+        EnvironmentBackedProperties(Environment environment) {
+            this.environment = environment;
+        }
+
+        @Override
+        public String getProperty(String key) {
+            return environment.getProperty(key);
+        }
+
+        @Override
+        public synchronized boolean containsKey(Object key) {
+            return key instanceof String && environment.containsProperty((String) key);
+        }
     }
 }

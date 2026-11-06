@@ -1,0 +1,8 @@
+org.springframework.context.ApplicationContextInitializer=\
+cn.keking.config.cloud.DualCloudRegistryGuard
+
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+cn.keking.config.cloud.DualCloudRegistryFailureAnalyzer
+
+org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
+cn.keking.config.cloud.HuaweiGovernanceImportFilter
