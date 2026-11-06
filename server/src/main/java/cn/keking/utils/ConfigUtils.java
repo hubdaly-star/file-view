@@ -80,11 +80,18 @@ public class ConfigUtils {
             String key = entry.getKey().toString();
             String value = entry.getValue().toString();
             if (value.trim().startsWith("${") && value.trim().endsWith("}")) {
+                // Supports ${ENV}, ${ENV:default} and ${ENV:http://host:port}. The first ':'
+                // splits env name from default; extra colons belong to the default value.
                 int beginIndex = value.indexOf(":");
-                if (beginIndex < 0) {
-                    beginIndex = value.length() - 1;
-                }
                 int endIndex = value.length() - 1;
+                if (beginIndex < 0 || beginIndex >= endIndex) {
+                    String envKey = value.substring(2, endIndex);
+                    String envValue = System.getenv(envKey);
+                    if (envValue != null && !envValue.trim().isEmpty()) {
+                        properties.setProperty(key, envValue);
+                    }
+                    continue;
+                }
                 String envKey = value.substring(2, beginIndex);
                 String envValue = System.getenv(envKey);
                 if (envValue == null || "".equals(envValue.trim())) {

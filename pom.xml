@@ -20,6 +20,27 @@
         <!-- ========== Spring 框架 ========== -->
         <spring.boot.version>3.5.6</spring.boot.version>
 
+        <!--
+          Spring Cloud / Nacos / Huawei CSE version matrix (Boot 3.5.6, Java 21)
+
+          Spring Boot 3.5.6: existing kkFileView 5.0.3 baseline (do not bump).
+          Spring Cloud 2025.0.0: official 2025.0.x train for Spring Boot 3.5.x.
+          Spring Cloud Alibaba 2025.0.0.0: official SCA line for Boot 3.5.x, Cloud 2025.0.x, Nacos 3.0.3.
+          Spring Cloud Huawei 1.11.15_2025.0.x (artifact uses a hyphen): official CSE client for Cloud 2025.0.x / Boot 3.5.x.
+
+          Rejected combinations:
+          SCA 2025.1.0.0 is Boot 4.0 / Cloud 2025.1 (NoSuchMethodError on Boot 3.5).
+          SCA 2023.0.3.x is the Boot 3.2/3.3 train, not 3.5.
+          Huawei 1.11.15_2025.1.x is Boot 4.0.x.
+          Huawei 1.11.15_2024.0.x is Boot 3.4.x / Cloud 2024.0.x.
+          Huawei 1.11.15_2025.0.x was compiled against Cloud 2025.0.1 and Boot 3.5.13
+          (same trains; "other versions" are documented as compatible). We keep
+          Cloud 2025.0.0 to match the SCA BOM and Boot 3.5.6 as the project baseline.
+        -->
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
+        <spring-cloud-huawei.version>1.11.15-2025.0.x</spring-cloud-huawei.version>
+
         <!-- ========== 文档转换和Office处理 ========== -->
         <jodconverter.version>4.4.11</jodconverter.version>
         <poi.version>5.2.5</poi.version>

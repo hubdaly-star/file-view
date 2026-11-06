@@ -13,10 +13,32 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- First matching BOM wins in Maven. Keep Boot, then Cloud, then Alibaba, then Huawei. -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring.boot.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.huaweicloud</groupId>
+                <artifactId>spring-cloud-huawei-bom</artifactId>
+                <version>${spring-cloud-huawei.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -57,6 +79,32 @@
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
+        </dependency>
+
+        <!--
+          Nacos config + discovery (Spring Cloud Alibaba 2025.0.0.0).
+          Auto-config is off by default via spring.cloud.nacos.*.enabled=false
+          so preview still starts without a Nacos server.
+        -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--
+          Huawei Cloud ServiceComb CSE registry (Spring Cloud Huawei 1.11.15-2025.0.x).
+          Use the discovery starter only — the full spring-cloud-starter-huawei-service-engine
+          also pulls OpenFeign, Swagger, Hessian, dashboard and governance, which would
+          intercept kkFileView HTTP traffic. CSE config center is intentionally omitted;
+          Nacos remains the config center.
+        -->
+        <dependency>
+            <groupId>com.huaweicloud</groupId>
+            <artifactId>spring-cloud-starter-huawei-service-engine-discovery</artifactId>
         </dependency>
 
         <!-- ========== 文档格式转换 ========== -->
