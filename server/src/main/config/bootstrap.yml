@@ -1,0 +1,39 @@
+###############################################################################
+# Optional bootstrap (Huawei CSE docs historically put registry address here).
+#
+# Spring Cloud Alibaba 2025.0.x still accepts bootstrap; 2025.1.x removes it.
+# This file is inert unless spring-cloud-starter-bootstrap is on the classpath
+# AND spring.cloud.bootstrap.enabled=true.
+#
+# Default: do not enable bootstrap. Prefer application.yml +
+# spring.config.import for Nacos, and application-cse.yml for CSE.
+###############################################################################
+
+spring:
+  cloud:
+    bootstrap:
+      enabled: false
+    nacos:
+      config:
+
+        # Nacos (only used when bootstrap is enabled)
+        enabled: false
+        namespace: "${NACOS_NAMESPACE:}"
+        group: "${NACOS_CONFIG_GROUP:DEFAULT_GROUP}"
+      discovery:
+        enabled: false
+      server-addr: "${NACOS_SERVER_ADDR:127.0.0.1:8848}"
+      username: "${NACOS_USERNAME:}"
+      password: "${NACOS_PASSWORD:}"
+    servicecomb:
+      discovery:
+
+        # Huawei CSE registry (only used when bootstrap is enabled)
+        enabled: false
+        address: "${CSE_REGISTRY_ADDRESS:http://127.0.0.1:30100}"
+      credentials:
+        enabled: "${CSE_CREDENTIALS_ENABLED:false}"
+        accessKey: "${CSE_ACCESS_KEY:}"
+        secretKey: "${CSE_SECRET_KEY:}"
+        akskCustomCipher: default
+        project: "${CSE_PROJECT:cn-north-4}"

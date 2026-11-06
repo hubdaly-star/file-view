@@ -7,8 +7,6 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Properties;
@@ -115,7 +113,6 @@ public class ConfigRefreshComponent {
     private void loadConfig() {
         synchronized (lock) {
             try {
-                Properties properties = new Properties();
                 String configFilePath = ConfigUtils.getCustomizedConfigPath();
                 Path configPath = Paths.get(configFilePath);
                 if (!Files.exists(configPath)) {
@@ -123,14 +120,11 @@ public class ConfigRefreshComponent {
                     return;
                 }
 
-                try (BufferedReader bufferedReader = new BufferedReader(new FileReader(configFilePath))) {
-                    properties.load(bufferedReader);
-                    ConfigUtils.restorePropertiesFromEnvFormat(properties);
-                    updateConfigConstants(properties);
-                    setWatermarkConfig(properties);
-                    LOGGER.info("配置文件重新加载完成");
-                }
-            } catch (IOException e) {
+                Properties properties = ConfigUtils.loadYamlProperties(configFilePath);
+                updateConfigConstants(properties);
+                setWatermarkConfig(properties);
+                LOGGER.info("配置文件重新加载完成");
+            } catch (Exception e) {
                 LOGGER.error("读取配置文件异常", e);
             }
         }
