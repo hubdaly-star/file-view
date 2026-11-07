@@ -10,9 +10,24 @@
 #   - spring.cloud.nacos.discovery.enabled
 #     + register-enabled=true                     发现 + 向 Nacos 注册本实例
 #
-# 请先把 Nacos 地址 / namespace / group / data-id / 账号换成实际值（勿提交真实密码）。
+# 默认不启用 Nacos；必须显式加上述 profile。不要只改 enabled。
 # 不要与 cse profile 一起激活：两个 ServiceRegistry 会在启动时 fail-fast。
-# 业务配置（ConfigConstants）以 Environment / Nacos 为准，本地 YAML 热加载在此 profile 下关闭。
+#
+# ---------- 已发布到本机 Nacos 的业务配置（source of truth，本 profile 下优先于本地 YAML）----------
+# Nacos Server 2.5.5 standalone；认证关闭。
+#   启动：在 Nacos 安装目录 bin 下执行  startup.cmd -m standalone
+#         （Windows 请先把 JAVA_HOME 指到 JDK 21，例如 Temurin 21）
+#   控制台：http://127.0.0.1:8848/nacos
+#   dataId：kkfileview.yml
+#   group：DEFAULT_GROUP
+#   namespace / tenant：空（public）
+#   type：yaml
+# 可用环境变量覆盖：NACOS_CONFIG_DATA_ID / NACOS_CONFIG_GROUP / NACOS_CONFIG_FILE_EXTENSION
+#   / NACOS_SERVER_ADDR / NACOS_NAMESPACE / NACOS_USERNAME / NACOS_PASSWORD（勿提交真实密码）
+#
+# 同名 key：nacos profile 下 Nacos 覆盖本地 application.yml。
+# ConfigRefreshComponent 在此 profile 下从 Environment 读配置并跳过本地 YAML 热加载覆盖。
+# 无 nacos profile 时仍用同目录 application.yml 作为完整本地回退，预览可直接启动。
 ###############################################################################
 
 spring:
@@ -30,4 +45,5 @@ spring:
         enabled: true
         register-enabled: true
   config:
-    import: "optional:nacos:${NACOS_CONFIG_DATA_ID:kkfileview.properties}?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true"
+    # 拉取 Nacos 上已发布的 YAML（dataId=kkfileview.yml）。optional：连不上 Nacos 也不阻止启动。
+    import: "optional:nacos:${NACOS_CONFIG_DATA_ID:kkfileview.yml}?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true"

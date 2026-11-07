@@ -24,8 +24,9 @@ import java.util.concurrent.*;
  * <ul>
  *   <li>Local-only (default): {@code @Value} injects Environment, then this component
  *       re-reads {@code config/application.yml} and watches it for hot reload.</li>
- *   <li>Nacos profile: skip the YAML overwrite so Nacos-backed Environment values win;
- *       listen for {@link EnvironmentChangeEvent} to refresh static fields.</li>
+ *   <li>Nacos profile: skip the YAML overwrite so Nacos-backed Environment values win
+ *       (published dataId {@code kkfileview.yml}); listen for {@link EnvironmentChangeEvent}
+ *       to refresh static fields. Same keys: Nacos over local {@code application.yml}.</li>
  * </ul>
  */
 @Component
