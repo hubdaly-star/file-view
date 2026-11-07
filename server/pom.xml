@@ -83,8 +83,10 @@
 
         <!--
           Nacos config + discovery (Spring Cloud Alibaba 2025.0.0.0).
-          Auto-config is off by default via spring.cloud.nacos.*.enabled=false
-          so preview still starts without a Nacos server.
+          application.yml keeps spring.cloud.nacos.*.enabled=false; the default
+          nacos profile turns them on and imports optional:nacos:kkfileview.yml.
+          fail-fast=false / optional import still allow start if Nacos is down.
+          Override: spring.profiles.active=cse (CSE discovery) or none (off).
         -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
@@ -396,9 +398,34 @@
             <resource>
                 <directory>src/main/config</directory>
                 <filtering>false</filtering>
+                <includes>
+                    <include>**/*.yml</include>
+                    <include>**/*.yaml</include>
+                </includes>
             </resource>
         </resources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>strip-legacy-application-properties</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <delete failonerror="false">
+                                    <fileset dir="${project.build.outputDirectory}" includes="application*.properties"/>
+                                </delete>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

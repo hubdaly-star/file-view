@@ -15,9 +15,11 @@ public class DualCloudRegistryFailureAnalyzer extends AbstractFailureAnalyzer<Il
         }
         return new FailureAnalysis(
                 cause.getMessage(),
-                "Activate exactly one cloud profile: --spring.profiles.active=nacos "
-                        + "or --spring.profiles.active=cse. Do not combine them, and do not set both "
-                        + "spring.cloud.nacos.discovery.enabled and spring.cloud.servicecomb.discovery.enabled to true.",
+                "Default start uses profile nacos. For CSE discovery use --spring.profiles.active=cse "
+                        + "(it replaces nacos; Nacos stays the config center). Do not combine nacos and cse, "
+                        + "and do not set both spring.cloud.nacos.discovery.enabled and "
+                        + "spring.cloud.servicecomb.discovery.enabled to true. "
+                        + "To turn Nacos off: --spring.profiles.active=none.",
                 cause);
     }
 }

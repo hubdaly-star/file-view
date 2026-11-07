@@ -8,8 +8,9 @@ import org.springframework.core.env.Environment;
  * Fails fast before bean creation when Nacos discovery and Huawei CSE discovery
  * are both enabled. Spring Cloud allows only one {@code ServiceRegistry}.
  *
- * <p>Supported enablement is profile-based and mutually exclusive:
- * {@code --spring.profiles.active=nacos} or {@code --spring.profiles.active=cse}.
+ * <p>Discovery enablement is profile-based and mutually exclusive. Default start
+ * uses {@code nacos}; {@code --spring.profiles.active=cse} replaces that profile
+ * so Nacos discovery stays off. Do not combine {@code nacos} and {@code cse}.
  */
 public class DualCloudRegistryGuard implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
@@ -19,7 +20,8 @@ public class DualCloudRegistryGuard implements ApplicationContextInitializer<Con
     public static final String FAILURE_MESSAGE =
             "Nacos discovery and Huawei CSE discovery cannot both be enabled. "
                     + "Spring Cloud allows only one ServiceRegistry. "
-                    + "Use --spring.profiles.active=nacos or --spring.profiles.active=cse (mutually exclusive).";
+                    + "Default profile is nacos. Use --spring.profiles.active=cse to replace it "
+                    + "(mutually exclusive). Do not combine nacos and cse.";
 
     @Override
     public void initialize(ConfigurableApplicationContext applicationContext) {

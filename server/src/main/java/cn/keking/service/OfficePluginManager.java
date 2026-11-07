@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.convert.DurationStyle;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -35,7 +36,13 @@ public class OfficePluginManager {
 
     private final Logger logger = LoggerFactory.getLogger(OfficePluginManager.class);
 
+    private final Environment environment;
+
     private LocalOfficeManager officeManager;
+
+    public OfficePluginManager(Environment environment) {
+        this.environment = environment;
+    }
 
     @Value("${office.plugin.server.ports:2001,2002}")
     private String serverPorts;
@@ -54,7 +61,7 @@ public class OfficePluginManager {
      */
     @PostConstruct
     public void startOfficeManager() throws OfficeException {
-        File officeHome = LocalOfficeUtils.getDefaultOfficeHome();
+        File officeHome = LocalOfficeUtils.getDefaultOfficeHome(environment);
         if (officeHome == null) {
             throw new RuntimeException("找不到office组件，请确认'office.home'配置是否有误");
         }

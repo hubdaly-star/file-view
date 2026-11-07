@@ -1,6 +1,7 @@
 package cn.keking.utils;
 
 import org.jodconverter.core.util.OSUtils;
+import org.springframework.core.env.Environment;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -9,13 +10,21 @@ import java.util.Properties;
 import java.util.stream.Stream;
 
 /**
- * @author chenjh
- * @since 2022-12-15
+ * Resolves LibreOffice / OpenOffice home.
+ *
+ * <p>When Nacos config is on (default {@code nacos} profile, or {@code cse} which
+ * still imports Nacos), {@code office.home} comes from Spring {@link Environment}
+ * (Nacos {@code kkfileview.yml}). The local {@code application.yml} is skipped so
+ * a stripped boot YAML cannot hide the Nacos path.
+ *
+ * <p>When Nacos is off ({@code --spring.profiles.active=none}), this still reads
+ * {@code office.home} from the local config file, then auto-detects installs.
  */
 public class LocalOfficeUtils {
 
     public static final String OFFICE_HOME_KEY = "office.home";
     public static final String DEFAULT_OFFICE_HOME_VALUE = "default";
+    static final String NACOS_CONFIG_ENABLED_KEY = "spring.cloud.nacos.config.enabled";
 
     private static final String EXECUTABLE_DEFAULT = "program/soffice.bin";
     private static final String EXECUTABLE_MAC = "program/soffice";
@@ -23,15 +32,53 @@ public class LocalOfficeUtils {
     private static final String EXECUTABLE_WINDOWS = "program/soffice.exe";
 
     public static File getDefaultOfficeHome() {
-        Properties properties = new Properties();
-        String customizedConfigPath = ConfigUtils.getCustomizedConfigPath();
-        try {
-            properties = ConfigUtils.loadYamlProperties(customizedConfigPath);
-        } catch (Exception ignored) {}
-        String officeHome = properties.getProperty(OFFICE_HOME_KEY);
-        if (officeHome != null && !DEFAULT_OFFICE_HOME_VALUE.equals(officeHome)) {
+        return getDefaultOfficeHome(null);
+    }
+
+    public static File getDefaultOfficeHome(Environment environment) {
+        String officeHome = resolveOfficeHome(environment);
+        if (isConfigured(officeHome)) {
             return new File(officeHome);
         }
+        return detectInstalledOfficeHome();
+    }
+
+    static String resolveOfficeHome(Environment environment) {
+        if (environment != null) {
+            String fromEnv = environment.getProperty(OFFICE_HOME_KEY);
+            if (isConfigured(fromEnv)) {
+                return fromEnv;
+            }
+            if (isNacosConfigEnabled(environment)) {
+                return fromEnv;
+            }
+        }
+        return readOfficeHomeFromLocalYaml();
+    }
+
+    static boolean isConfigured(String officeHome) {
+        if (officeHome == null) {
+            return false;
+        }
+        String trimmed = officeHome.trim();
+        return !trimmed.isEmpty() && !DEFAULT_OFFICE_HOME_VALUE.equalsIgnoreCase(trimmed);
+    }
+
+    static boolean isNacosConfigEnabled(Environment environment) {
+        return environment != null
+                && Boolean.TRUE.equals(environment.getProperty(NACOS_CONFIG_ENABLED_KEY, Boolean.class, Boolean.FALSE));
+    }
+
+    static String readOfficeHomeFromLocalYaml() {
+        try {
+            Properties properties = ConfigUtils.loadYamlProperties(ConfigUtils.getCustomizedConfigPath());
+            return properties.getProperty(OFFICE_HOME_KEY);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    static File detectInstalledOfficeHome() {
         if (OSUtils.IS_OS_WINDOWS) {
             String userDir = ConfigUtils.getUserDir();
             // Try to find the most recent version of LibreOffice or OpenOffice,
@@ -106,7 +153,7 @@ public class LocalOfficeUtils {
 
     private static File findOfficeHome(final String executablePath, final String... homePaths) {
         return Stream.of(homePaths)
-                .filter(homePath -> Files.isRegularFile(Paths.get(homePath, executablePath)))
+                .filter(homePath -> homePath != null && Files.isRegularFile(Paths.get(homePath, executablePath)))
                 .findFirst()
                 .map(File::new)
                 .orElse(null);

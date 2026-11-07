@@ -7,22 +7,32 @@
 #   dataId=kkfileview.yml, group=DEFAULT_GROUP, type=yaml
 #   namespace showName=dev, ID=4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e
 #
-# nacos profile 下业务配置以 Nacos 为准。启用方式（不要只改 enabled）：
-#   --spring.profiles.active=nacos   或   SPRING_PROFILES_ACTIVE=nacos
-# ConfigRefreshComponent 此时跳过本地 YAML 覆盖，从 Environment 刷新。
+# Default start (java -jar / IDE, no extra args) activates profile nacos.
+# That loads application-nacos.yml, which:
+#   - sets spring.cloud.nacos.config.enabled=true
+#   - imports optional:nacos:kkfileview.yml from namespace dev (ID above)
+# ConfigRefreshComponent then skips local YAML overwrite and reads Environment.
+# LocalOfficeUtils / OfficePluginManager read office.home from Environment
+# (Nacos kkfileview.yml), not this file. nacos profile 下业务配置以 Nacos 为准。
+# 不要只改 enabled。
 #
-# 无 nacos profile 时本文件不含业务键：走 ConfigConstants / @Value 代码默认，
-# 预览仍可启动。华为 CSE：--spring.profiles.active=cse（与 nacos 互斥）。
+# CLI --spring.profiles.active / SPRING_PROFILES_ACTIVE 会替换这个默认值：
+#   cse   华为 CSE 发现（Nacos discovery 关闭，避免双注册；配置中心仍是 Nacos）
+#   none  关闭 Nacos / CSE。本文件不含业务键，走 ConfigConstants / @Value 默认
+# 不要同时激活 nacos 和 cse：两个 discovery.enabled 同时为 true 会 fail-fast。
 #
-# 默认全部关闭 Nacos / CSE。两个 discovery.enabled 同时为 true 会 fail-fast。
 # 版本：Spring Cloud Alibaba 2025.0.0.0 + Spring Cloud Huawei 1.11.15-2025.0.x
-# Nacos 配置用 spring.config.import（写在 application-nacos.yml）。不使用 bootstrap。
+# Nacos 配置用 spring.config.import（写在 application-nacos.yml / application-cse.yml）。
+# 不使用 bootstrap。
 ###############################################################################
 
 spring:
   application:
     name: "${SPRING_APPLICATION_NAME:kkfileview}"
-  # Nacos 配置导入写在 application-nacos.yml（dataId=kkfileview.yml，YAML）。
+  profiles:
+    # Plain java -jar / IDE start. Override with --spring.profiles.active=cse or none.
+    active: nacos
+  # Nacos 配置导入写在 application-nacos.yml / application-cse.yml（dataId=kkfileview.yml）。
   servlet:
     multipart:
       # Servlet 上传上限（框架启动即生效；业务侧同名键在 Nacos kkfileview.yml）
@@ -53,10 +63,11 @@ spring:
       password: "${NACOS_PASSWORD:}"
       config:
 
-        # ---------- Nacos 配置中心（默认关闭；nacos profile 会打开）----------
+        # ---------- Nacos 配置中心（本文件默认关闭；默认 nacos profile 会打开）----------
         # 与控制台已发布配置对齐：dataId=kkfileview.yml（YAML），group=DEFAULT_GROUP。
         # file-extension=yaml 表示按 YAML 解析；实际拉取的 dataId 由
-        # application-nacos.yml 的 spring.config.import 指定为 kkfileview.yml。
+        # application-nacos.yml / application-cse.yml 的 spring.config.import
+        # 指定为 kkfileview.yml。
         enabled: false
         import-check:
           enabled: false
@@ -67,7 +78,7 @@ spring:
         file-extension: "${NACOS_CONFIG_FILE_EXTENSION:yaml}"
         prefix: "${NACOS_CONFIG_PREFIX:kkfileview}"
       discovery:
-        # ---------- Nacos 服务注册 / 发现（默认关闭；nacos profile 会打开）----------
+        # ---------- Nacos 服务注册 / 发现（本文件默认关闭；默认 nacos profile 会打开）----------
         enabled: false
         register-enabled: false
         fail-fast: false

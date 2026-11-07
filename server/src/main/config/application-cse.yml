@@ -1,13 +1,15 @@
 ###############################################################################
-# Profile: cse（唯一支持的华为 CSE 启用方式）
+# Profile: cse（华为 CSE 发现；与 nacos discovery 互斥）
 #   --spring.profiles.active=cse
 #   或环境变量 SPRING_PROFILES_ACTIVE=cse
+# CLI / 环境变量会替换默认的 nacos profile，因此不会同时打开 Nacos discovery。
 #
 # 本 profile 会同时打开：
 #   - spring.cloud.discovery.enabled
 #   - spring.cloud.servicecomb.discovery.enabled   CSE 发现 + 注册本实例
-# CSE 配置中心保持关闭。业务配置在 Nacos dataId=kkfileview.yml（需 nacos profile）；
-# 无 Nacos 时走 ConfigConstants 代码默认。
+#   - spring.cloud.nacos.config.enabled
+#     + spring.config.import（optional:nacos:...） 配置中心仍是 Nacos kkfileview.yml
+# Nacos discovery / register 保持关闭，避免双注册。CSE 配置中心保持关闭。
 #
 # 请先把 CSE 注册中心地址、应用名、AK/SK 占位符换成实际值（勿提交真实密钥）。
 # 不要与 nacos profile 一起激活：两个 ServiceRegistry 会在启动时 fail-fast。
@@ -20,8 +22,19 @@ spring:
   cloud:
     discovery:
       enabled: true
+    nacos:
+      config:
+
+        # CSE 只做发现；业务配置仍从 Nacos dataId=kkfileview.yml 拉取
+        enabled: true
+      discovery:
+        enabled: false
+        register-enabled: false
     servicecomb:
       discovery:
         enabled: true
       config:
         enabled: false
+  config:
+    # 与 nacos profile 相同的 YAML dataId。optional：连不上 Nacos 也不阻止启动。
+    import: "optional:nacos:${NACOS_CONFIG_DATA_ID:kkfileview.yml}?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true"

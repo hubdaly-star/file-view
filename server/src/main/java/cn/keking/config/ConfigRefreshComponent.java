@@ -17,19 +17,20 @@ import java.util.concurrent.*;
 
 /**
  * Bridges kkFileView's static {@link ConfigConstants} / {@link WatermarkConfigConstants}
- * to either the local {@code application.yml} file watcher (default) or the Spring
- * {@link Environment} when the {@code nacos} profile has turned on Nacos config.
+ * to the Spring {@link Environment} when Nacos config is on (default {@code nacos}
+ * profile, or {@code cse} which still imports Nacos config), or to the local
+ * {@code application.yml} file watcher when Nacos is off ({@code none}).
  *
  * <p>Contract:
  * <ul>
- *   <li>Local-only (default): {@code @Value} injects Environment, then this component
- *       re-reads {@code config/application.yml} and watches it for hot reload.
- *       That file is boot/connection only; missing business keys use
- *       {@link ConfigConstants} defaults. Full preview settings live in Nacos
- *       {@code kkfileview.yml} (namespace {@code dev}).</li>
- *   <li>Nacos profile: skip the YAML overwrite so Nacos-backed Environment values win
- *       (published dataId {@code kkfileview.yml}); listen for {@link EnvironmentChangeEvent}
- *       to refresh static fields. Same keys: Nacos over local {@code application.yml}.</li>
+ *   <li>Default ({@code nacos} profile): skip the YAML overwrite so Nacos-backed
+ *       Environment values win (published dataId {@code kkfileview.yml},
+ *       namespace {@code dev}); listen for {@link EnvironmentChangeEvent}
+ *       to refresh static fields.</li>
+ *   <li>Local-only ({@code --spring.profiles.active=none}): {@code @Value} injects
+ *       Environment, then this component re-reads {@code config/application.yml}
+ *       and watches it for hot reload. That file is boot/connection only;
+ *       missing business keys use {@link ConfigConstants} defaults.</li>
  * </ul>
  */
 @Component
