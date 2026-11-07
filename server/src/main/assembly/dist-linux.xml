@@ -22,6 +22,10 @@
             <directory>src/main/config</directory>
             <outputDirectory>${file.separator}config</outputDirectory>
             <lineEnding>unix</lineEnding>
+            <includes>
+                <include>*.yml</include>
+                <include>*.yaml</include>
+            </includes>
         </fileSet>
         <fileSet>
             <directory>src/main/log</directory>

@@ -7,17 +7,20 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Turns on Spring Cloud discovery only when {@code spring.cloud.discovery.enabled=true}.
  *
- * <p>Supported path: {@code --spring.profiles.active=nacos} or {@code cse}
- * (mutually exclusive). Those profiles set the master switch plus the matching
- * client ({@code spring.cloud.nacos.discovery.*} or
- * {@code spring.cloud.servicecomb.discovery.*}). Default application.yml keeps
- * every flag false so the app still starts without a registry. Preview/business
- * keys are not in that file; with the nacos profile they come from Nacos
- * {@code kkfileview.yml}, otherwise from {@code ConfigConstants} defaults.
+ * <p>Default start activates profile {@code nacos} (Nacos config + Nacos discovery).
+ * Override with {@code --spring.profiles.active=cse} (CSE discovery; Nacos remains
+ * the config center) or {@code none} (no registry). {@code nacos} and {@code cse}
+ * are mutually exclusive for discovery: combining them fail-fasts because Spring
+ * Cloud allows only one {@code ServiceRegistry}.
+ *
+ * <p>Preview/business keys are not in local {@code application.yml}; they come from
+ * Nacos {@code kkfileview.yml} when Nacos config is on, otherwise from
+ * {@code ConfigConstants} defaults.
  *
  * <p>Flipping an env var such as {@code NACOS_DISCOVERY_ENABLED=true} without the
- * profile is not supported: Nacos {@code spring.config.import} lives only in
- * {@code application-nacos.yml}, and {@code register-enabled} defaults to false.
+ * profile is not supported: Nacos {@code spring.config.import} lives in
+ * {@code application-nacos.yml} / {@code application-cse.yml}, and
+ * {@code register-enabled} defaults to false outside the {@code nacos} profile.
  */
 @Configuration
 @EnableDiscoveryClient

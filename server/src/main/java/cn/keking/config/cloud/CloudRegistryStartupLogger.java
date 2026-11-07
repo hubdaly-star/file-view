@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
  * Logs which cloud registry integrations are active after a successful start.
  * Dual Nacos + CSE discovery is rejected earlier by {@link DualCloudRegistryGuard}.
  *
- * <p>Enable with {@code --spring.profiles.active=nacos} or {@code cse} (mutually exclusive).
+ * <p>Default profile is {@code nacos}. Override with {@code --spring.profiles.active=cse}
+ * (mutually exclusive discovery) or {@code none} to turn Nacos off.
  */
 @Component
 public class CloudRegistryStartupLogger implements ApplicationRunner {

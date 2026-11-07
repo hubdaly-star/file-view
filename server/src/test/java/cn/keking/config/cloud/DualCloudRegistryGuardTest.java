@@ -41,5 +41,8 @@ class DualCloudRegistryGuardTest {
         assertTrue(ex.getMessage().contains("cannot both be enabled"));
         assertTrue(ex.getMessage().contains("nacos"));
         assertTrue(ex.getMessage().contains("cse"));
+        assertTrue(ex.getMessage().contains("Default profile is nacos")
+                        || ex.getMessage().contains("replace"),
+                "failure must tell operators that cse replaces the default nacos profile");
     }
 }

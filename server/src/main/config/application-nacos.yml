@@ -1,5 +1,8 @@
 ###############################################################################
-# Profile: nacos（唯一支持的 Nacos 启用方式）
+# Profile: nacos（默认 profile：Nacos 配置中心 + Nacos 发现）
+# application.yml 设 spring.profiles.active=nacos，所以 plain java -jar / IDE
+# 启动就会加载本文件，从 Nacos 拉取 kkfileview.yml（namespace showName=dev）。
+# 显式指定时：
 #   --spring.profiles.active=nacos
 #   或环境变量 SPRING_PROFILES_ACTIVE=nacos
 #
@@ -10,7 +13,7 @@
 #   - spring.cloud.nacos.discovery.enabled
 #     + register-enabled=true                     发现 + 向 Nacos 注册本实例
 #
-# 默认不启用 Nacos；必须显式加上述 profile。不要只改 enabled。
+# 不要只改 enabled。关闭 Nacos：--spring.profiles.active=none
 # 不要与 cse profile 一起激活：两个 ServiceRegistry 会在启动时 fail-fast。
 #
 # ---------- 已发布到本机 Nacos 的业务配置（source of truth，本 profile 下优先于本地 YAML）----------
