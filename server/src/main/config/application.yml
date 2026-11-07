@@ -1,23 +1,35 @@
 ###############################################################################
-# 一、服务器基础配置（需要重启生效）
+# Boot + cloud connection only. Do not put preview/business keys here.
+#
+# Source of truth for office, pdf, cache, trust.host, watermark, media, ftp,
+# aes, file types, and the rest of the preview settings:
+#   Nacos 2.5.5 console: http://127.0.0.1:8848/nacos
+#   dataId=kkfileview.yml, group=DEFAULT_GROUP, type=yaml
+#   namespace showName=dev, ID=4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e
+#
+# nacos profile 下业务配置以 Nacos 为准。启用方式（不要只改 enabled）：
+#   --spring.profiles.active=nacos   或   SPRING_PROFILES_ACTIVE=nacos
+# ConfigRefreshComponent 此时跳过本地 YAML 覆盖，从 Environment 刷新。
+#
+# 无 nacos profile 时本文件不含业务键：走 ConfigConstants / @Value 代码默认，
+# 预览仍可启动。华为 CSE：--spring.profiles.active=cse（与 nacos 互斥）。
+#
+# 默认全部关闭 Nacos / CSE。两个 discovery.enabled 同时为 true 会 fail-fast。
+# 版本：Spring Cloud Alibaba 2025.0.0.0 + Spring Cloud Huawei 1.11.15-2025.0.x
+# Nacos 配置用 spring.config.import（写在 application-nacos.yml）。不使用 bootstrap。
 ###############################################################################
 
-# Spring 应用名，服务注册到 Nacos / CSE 时使用该名称
 spring:
   application:
     name: "${SPRING_APPLICATION_NAME:kkfileview}"
   # Nacos 配置导入写在 application-nacos.yml（dataId=kkfileview.yml，YAML）。
-  # 请用 --spring.profiles.active=nacos，不要只改 enabled。无该 profile 时本文件是完整本地回退。
   servlet:
     multipart:
-
-      # 文件上传大小限制，默认500MB
-      # 注意：需要同时设置spring.servlet.multipart.max-file-size和max-request-size
+      # Servlet 上传上限（框架启动即生效；业务侧同名键在 Nacos kkfileview.yml）
       max-file-size: "500MB"
       max-request-size: "500MB"
   freemarker:
-
-    # FreeMarker模板引擎配置
+    # Templates live under classpath:/web/*.ftl (not Boot's classpath:/templates/)
     template-loader-path: "classpath:/web/"
     cache: false
     charset: UTF-8
@@ -27,51 +39,6 @@ spring:
     expose-session-attributes: true
     request-context-attribute: request
     suffix: .ftl
-  redisson:
-
-    # Redis部署模式，默认为single（单机模式）
-    # 可选值：
-    #   single: 单机模式（默认）
-    #   cluster: 集群模式
-    #   sentinel: 哨兵模式（高可用）
-    #   master-slave: 主从模式
-    mode: single
-    # Redis连接地址，支持多种格式：
-    # 单机模式：redis://127.0.0.1:6379
-    # 集群模式：redis://node1:6379,redis://node2:6379,redis://node3:6379
-    # 哨兵模式：redis://sentinel1:26379,redis://sentinel2:26379
-    address: "${KK_SPRING_REDISSON_ADDRESS:redis://127.0.0.1:6379}"
-    # Redis连接密码，无密码时留空
-    password: "${KK_SPRING_REDISSON_PASSWORD:}"
-    # Redis数据库索引，默认为0（0-15）
-    # 不同业务可使用不同数据库隔离
-    database: "${KK_SPRING_REDISSON_DATABASE:0}"
-  ###############################################################################
-  # 十五、Nacos（配置中心 + 服务注册发现）与华为云 CSE（服务注册）
-  #
-  # 默认全部关闭，不影响现有文件预览功能。没有 Nacos / CSE 时也可直接启动。
-  #
-  # 唯一支持的启用方式（互斥，不要两个一起开）：
-  #   Nacos 配置中心 + 注册发现：--spring.profiles.active=nacos
-  #                            或 SPRING_PROFILES_ACTIVE=nacos
-  #   华为 CSE 注册发现：        --spring.profiles.active=cse
-  #                            或 SPRING_PROFILES_ACTIVE=cse
-  # 见同目录 application-nacos.yml / application-cse.yml。
-  #
-  # nacos profile 下业务配置以 Nacos 为准（已发布 dataId=kkfileview.yml，
-  # group=DEFAULT_GROUP，type=yaml）。本机 Nacos 使用命名空间 showName=dev，
-  # namespace ID（tenant）=4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e；public 为空。
-  # 同名 key Nacos 覆盖本文件。
-  # 无 nacos profile 时本文件仍是完整本地配置，不依赖 Nacos 即可预览。
-  #
-  # 不要只改下面的 *.enabled / 环境变量。原因：
-  #   - Nacos 的 spring.config.import 只写在 nacos profile 里，没有它配置中心不会拉配置
-  #   - register-enabled 默认 false：即使误开 discovery.enabled 也不会向 Nacos 注册
-  #   - 两个 discovery.enabled 同时为 true 时启动会直接失败（Spring Cloud 只能有一个 ServiceRegistry）
-  #
-  # 版本：Spring Cloud Alibaba 2025.0.0.0 + Spring Cloud Huawei 1.11.15-2025.0.x
-  # Nacos 配置用 spring.config.import（写在 application-nacos.yml）。不使用 bootstrap。
-  ###############################################################################
   cloud:
     discovery:
       # 总开关：false 时不启用 DiscoveryClient。nacos / cse profile 会把它设为 true
@@ -79,7 +46,6 @@ spring:
     nacos:
 
       # ---------- Nacos 公共连接（config / discovery 共用；仅地址/账号可用环境变量覆盖）----------
-      # 示例：127.0.0.1:8848  或  nacos.example.com:8848
       # 默认连本机 Nacos 2.5.5 的 dev 命名空间（showName=dev，ID 见 namespace）。
       # public 为空；SCA 2025.0.x 若改回 public / 空 namespace，Nacos Server 需 3.x。
       server-addr: "${NACOS_SERVER_ADDR:127.0.0.1:8848}"
@@ -102,8 +68,6 @@ spring:
         prefix: "${NACOS_CONFIG_PREFIX:kkfileview}"
       discovery:
         # ---------- Nacos 服务注册 / 发现（默认关闭；nacos profile 会打开）----------
-        # enabled：加载 Nacos Discovery 客户端；register-enabled：向 Nacos 注册本实例
-        # 两者默认都是 false。nacos profile 会同时设为 true（发现 + 注册）
         enabled: false
         register-enabled: false
         fail-fast: false
@@ -118,10 +82,7 @@ spring:
       discovery:
 
         # ---------- 华为云 ServiceComb CSE 注册中心（默认关闭；cse profile 会打开）----------
-        # enabled=true 时会注册本实例。governance/router 自动配置由 HuaweiGovernanceImportFilter
-        # 过滤（不能 Maven 排除：discovery 适配器实现了 router/governance 接口）
         enabled: false
-        # Exclusive engine 示例：https://192.168.0.10:30100  集群用逗号分隔
         address: "${CSE_REGISTRY_ADDRESS:http://127.0.0.1:30100}"
         appName: "${CSE_APPLICATION:kkfileview}"
         serviceName: "${CSE_SERVICE_NAME:kkfileview}"
@@ -133,7 +94,6 @@ spring:
       dashboard:
         enabled: false
       webmvc:
-        # 双保险：即使治理自动配置被加载，也不对预览 HTTP 限流/熔断/改写
         rateLimiting:
           enabled: false
         identifierRateLimiting:
@@ -153,34 +113,23 @@ spring:
         environment: "${CSE_ENVIRONMENT:production}"
         version: "${CSE_SERVICE_VERSION:5.0.3}"
       credentials:
-        # 华为云公有云引擎 AK/SK（专享版 VPC 内通常不需要）。不要填真实密钥
         enabled: "${CSE_CREDENTIALS_ENABLED:false}"
         accessKey: "${CSE_ACCESS_KEY:}"
         secretKey: "${CSE_SECRET_KEY:}"
         akskCustomCipher: default
         project: "${CSE_PROJECT:cn-north-4}"
 
-# 服务器端口号，默认8012
-# 可以通过环境变量 KK_SERVER_PORT 覆盖
 server:
   port: "${KK_SERVER_PORT:8012}"
   servlet:
-
-    # 应用上下文路径，默认为根路径 /
-    # 可以通过环境变量 KK_CONTEXT_PATH 覆盖
     context-path: "${KK_CONTEXT_PATH:/}"
     encoding:
-
-      # 字符编码设置，统一使用UTF-8
       charset: utf-8
   compression:
-
-    # 启用响应压缩，减少网络传输
     enabled: true
     min-response-size: "2048"
     mime-types: "application/javascript,text/css,application/json,application/xml,text/html,text/xml,text/plain,font/woff,application/font-woff,font/eot,image/svg+xml,image/x-icon"
 
-# Spring Boot Actuator监控端点配置
 management:
   endpoints:
     web:
@@ -192,475 +141,3 @@ management:
   health:
     defaults:
       enabled: true
-
-
-###############################################################################
-# 二、Office文档处理配置（部分支持动态配置）
-#
-# 以下业务开关（office / pdf / cache / trust.host / watermark 等）是无 profile 时的本地回退。
-# --spring.profiles.active=nacos 时以 Nacos dataId=kkfileview.yml 为 source of truth；
-# 同名 key 远程优先（ConfigRefreshComponent 跳过本地 YAML 覆盖）。
-###############################################################################
-
-# Office组件安装路径，默认为自动查找
-# Windows示例（注意双反斜杠）：C:\\Program Files (x86)\\OpenOffice 4
-# Linux示例：/opt/libreoffice
-# MacOS示例：/Applications/LibreOffice.app/Contents
-office:
-  home: "${KK_OFFICE_HOME:default}"
-  plugin:
-    server:
-
-      # Office组件服务端口，支持多个端口实现负载均衡
-      ports: "2001,2002"
-    task:
-
-      # Office组件任务超时时间，默认5分钟
-      timeout: "5m"
-
-      # 每个进程最大任务数，防止内存溢出
-      maxtasksperprocess: "200"
-
-      # 任务执行超时时间，默认5分钟
-      taskexecutiontimeout: "5m"
-
-  # Office文档分页范围，支持动态配置
-  # 默认false，开启后可以指定转换的页面范围
-  pagerange: "${KK_OFFICE_PAGERANGE:false}"
-
-  # Office文档水印功能，支持动态配置
-  # 默认false，开启后会在Office文档上添加水印
-  watermark: "${KK_OFFICE_WATERMARK:false}"
-
-  # Office图片质量，1-100，默认80
-  # 值越高图片质量越好，但文件越大
-  quality: "${KK_OFFICE_QUALITY:80}"
-
-  # Office图片最大分辨率，默认150
-  # 控制生成图片的最大分辨率
-  maximageresolution: "${KK_OFFICE_MAXIMAGERESOLUTION:150}"
-
-  # 导出Office书签，支持动态配置
-  # 默认true，转换PDF时保留书签
-  exportbookmarks: "${KK_OFFICE_EXPORTBOOKMARKS:true}"
-
-  # 是否将Office文档中的批注作为PDF注释导出，默认为true（导出）
-  # 保留批注便于文档审阅
-  exportnotes: "${KK_OFFICE_EXPORTNOTES:true}"
-
-  # 加密文档生成的PDF是否添加密码，默认为true（添加）
-  # 密码为原始加密文档的密码，增强文档安全性
-  documentopenpasswords: "${KK_OFFICE_DOCUMENTOPENPASSWORD:true}"
-  type:
-
-    # Excel文档(xlsx)的前端解析方式，默认为web（Web端解析）
-    # web: 使用前端SheetJS库解析，减轻服务器压力
-    # image: 服务器转换为图片，兼容性更好
-    web: "${KK_OFFICE_TYPE_WEB:web}"
-  preview:
-
-    # Office文档预览类型
-    # 支持动态配置，可选值：image/pdf，默认使用pdf模式
-    type: "${KK_OFFICE_PREVIEW_TYPE:pdf}"
-    switch:
-
-      # 是否关闭Office预览模式切换开关，默认为true（关闭切换）
-      # 设置为false时，用户可以在图片和PDF模式间切换
-      disabled: "${KK_OFFICE_PREVIEW_SWITCH_DISABLED:true}"
-
-
-###############################################################################
-# 三、CAD文件处理配置（支持动态配置）
-###############################################################################
-
-# CAD文件预览类型
-#   svg: 转换为SVG矢量格式（缩放不失真）
-#   pdf: 转换为PDF格式（便于打印和标注）
-cad:
-  preview:
-    type: "${KK_CAD_PREVIEW_TYPE:svg}"
-
-  # Cad转换模块设置(aspose-cad=1 ,cadviewer=3)
-  # aspose-cad 默认集成到系统,但是特别吃服务器性能  (支持转换格式为 svg、pdf)
-  # cadviewer 下载地址 https://cadviewer.com/alldownloads/autoxchange/ 更具自己系统下载转换包(支持转换格式为 svg、svgz、pdf)
-  # 1=aspose-cad  转换格式为 pdf,svg,tif   支持类型最多
-  # 2=cadviewer   转换格式为 pdf,svg  支持的类型 dwg  dxf  dwf
-  conversionmodule: "1"
-
-  # Cad 后端转换包路径 （linux 严格注意大小写）
-  # cadviewer windows 修改名称为 cadviewer.exe   inux修改名称为  cadviewer   需要安装字体
-  # cadviewer 字体下载 https://cadviewer.com/downloads/fonts/fonts.tar.gz  放在 cad.file.path 目录里面的fonts.
-  cadconverterpath: false
-
-
-  # CAD文件处理线程数
-  thread: "${KK_CAD_THREAD:5}"
-
-  # CAD文件处理超时时间（秒）
-  timeout: "${KK_CAD_TIMEOUT:90}"
-
-
-###############################################################################
-# 四、PDF文件处理配置（支持动态配置）
-###############################################################################
-
-# 是否禁止PDF演示模式，默认为true（禁止）
-pdf:
-  presentationMode:
-    disable: "${KK_PDF_PRESENTATION_MODE_DISABLE:true}"
-  openFile:
-
-    # 是否禁止PDF文件菜单中的"打开文件"选项，默认为true（禁止）
-    disable: "${KK_PDF_OPEN_FILE_DISABLE:true}"
-  print:
-
-    # 是否禁止PDF打印功能，默认为true（禁止）
-    disable: "${KK_PDF_PRINT_DISABLE:true}"
-  download:
-
-    # 是否禁止PDF下载功能，默认为true（禁止）
-    disable: "${KK_PDF_DOWNLOAD_DISABLE:true}"
-  bookmark:
-
-    # 是否禁止PDF书签/大纲功能，默认为true（禁止）
-    disable: "${KK_PDF_BOOKMARK_DISABLE:true}"
-  disable:
-
-    # 是否禁止PDF编辑功能（注释、表单等），默认为false（允许编辑）
-    editing: "${KK_PDF_DISABLE_EDITING:false}"
-  sidebar:
-
-    # 是否默认打开PDF侧边栏（缩略图面板），默认为true（打开）
-    open: "${KK_PDF_SIDEBAR_OPEN:true}"
-  max:
-
-    # PDF处理最大线程数，控制并发处理能力
-    threads: "10"
-  timeout:
-
-    # PDF处理超时配置
-    small: "90"
-    medium: "180"
-    large: "300"
-    xlarge: "600"
-  dpi:
-
-    # PDF智能DPI优化
-    # 是否启用PDF DPI智能调整，默认为true（启用）
-    # 根据PDF页数自动调整DPI，平衡清晰度和性能
-    enabled: true
-
-    # 智能DPI分级配置
-    # 小文件（0-50页）：150 DPI（高质量）
-    small: "150"
-    # 中等文件（50-100页）：120 DPI（平衡质量与性能）
-    medium: "120"
-    # 大文件（100-200页）：96 DPI（优化性能）
-    large: "96"
-    # 超大文件（200-500页）：72 DPI（快速转换）
-    xlarge: "72"
-    # 巨量文件（>500页）：72 DPI（最小资源消耗）
-    xxlarge: "72"
-
-# PDF转图片的基准DPI，默认为144
-# 当DPI优化禁用时使用此值
-pdf2jpg:
-  dpi: "${KK_PDF2JPG_DPI:144}"
-
-
-###############################################################################
-# 五、TIF文件处理配置（支持动态配置）
-###############################################################################
-
-# TIF文件预览类型
-#   tif: 使用前端Tiff.js插件直接浏览（需要浏览器支持）
-#   jpg: 服务器转换为JPG格式后显示
-#   pdf: 服务器转换为PDF格式显示
-tif:
-  preview:
-    type: "${KK_TIF_PREVIEW_TYPE:tif}"
-
-  # TIF文件处理线程数
-  thread: "5"
-
-  # TIF文件处理超时时间（秒）
-  timeout: "90"
-
-
-###############################################################################
-# 六、媒体文件处理配置（支持动态配置）
-###############################################################################
-
-# 媒体文件类型（音频、视频）
-media: "${KK_MEDIA:mp3,wav,mp4,flv,mpd,m3u8,ts,mpeg,m4a}"
-
-# 需要转换的媒体文件类型
-convertMedias: "${KK_CONVERTMEDIAS:avi,mov,wmv,mkv,3gp,rm,mpeg}"
-
-# 媒体文件超时控制
-"media.timeout.enabled": true
-"media.small.file.timeout": "30"
-"media.medium.file.timeout": "60"
-"media.large.file.timeout": "180"
-"media.xl.file.timeout": "300"
-"media.xxl.file.timeout": "600"
-"media.xxxl.file.timeout": "1200"
-
-# 媒体文件转换最大大小（MB）
-"media.convert.max.size": "300"
-
-# 是否禁用视频格式转换功能，默认为false（禁用）
-# ⚠️ 重要：视频转换非常消耗CPU和内存资源
-"media.convert.disable": "${KK_MEDIA_CONVERT_DISABLE:false}"
-
-
-###############################################################################
-# 七、文件存储与缓存配置（支持动态配置）
-###############################################################################
-
-# 预览生成资源的存储路径，默认为应用根路径下的file目录
-# Windows示例：D:\\kkFileview\\（注意双反斜杠）
-# Linux示例：/opt/kkfileview/file/
-# 重要：确保应用有该目录的读写权限
-file:
-  dir: "${KK_FILE_DIR:default}"
-  upload:
-    # 是否禁用首页文件上传功能，默认为true（禁用）
-    # 设置为true可关闭上传功能，仅用于预览
-    disable: true
-
-# 允许预览的本地文件夹路径，默认为default（禁止所有本地文件预览）
-# ⚠️ 安全警告：配置此路径可能允许访问系统文件，请谨慎配置
-# Windows示例（注意前面加反斜杠）：\D:\\kkFileview\\1\\1.txt
-# Linux示例（注意前面加正斜杠）：/opt/1.txt
-# 使用file协议访问：file://d:/1/1.txt（Windows）或 file:/opt/1/1.txt（Linux）
-local:
-  preview:
-    dir: "${KK_LOCAL_PREVIEW_DIR:default}"
-
-# 是否启用缓存，支持动态配置
-# 默认true，开启缓存提高性能
-cache:
-  enabled: "${KK_CACHE_ENABLED:true}"
-
-  # 缓存实现类型，默认为jdk（使用JDK内置对象实现）
-  # 可选值：
-  #   jdk: JDK内置ConcurrentHashMap，单机部署推荐
-  #   redis: Redis分布式缓存，集群部署推荐
-  #   default: 内嵌RocksDB，支持持久化
-  type: "${KK_CACHE_TYPE:jdk}"
-  clean:
-
-    # 缓存清理配置
-    # 是否启用缓存自动清理，默认为true（启用）
-    # 定期清理过期缓存，避免磁盘空间无限增长
-    enabled: "${KK_CACHE_CLEAN_ENABLED:true}"
-    # 缓存自动清理时间，使用Quartz cron表达式，默认为每天凌晨3点执行
-    # 表达式格式：秒 分 时 日 月 周 年（可选）
-    # 0 0 3 * * ? 表示每天3:00:00执行清理
-    cron: "${KK_CACHE_CLEAN_CRON:0 0 3 * * ?}"
-
-
-###############################################################################
-# 八、安全与访问控制配置（支持动态配置）
-###############################################################################
-
-# 提供预览服务的地址，默认从请求url读，如果使用nginx等反向代理，需要手动设置
-# base.url = https://file.keking.cn
-base:
-  url: "${KK_BASE_URL:default}"
-
-# 信任站点白名单配置，多个用','隔开
-# ⚠️ 安全提示：为防止SSRF攻击，强烈建议配置信任主机白名单
-# ⚠️ 如果不配置，系统将默认拒绝所有外部文件预览请求
-# 配置示例：
-# trust.host = kkview.cn,yourdomain.com,cdn.example.com
-# 如果需要允许所有域名（不推荐，仅用于测试环境），请设置为：
-# trust.host = *
-# 当前配置：默认本机测试 （正式启用请修改）
-trust:
-  host: "${KK_TRUST_HOST:default}"
-
-# 不信任站点黑名单配置，多个用逗号隔开
-# 黑名单优先级高于白名单，设置后将禁止预览来自这些站点的文件
-# 建议配置：禁止访问内网地址和本地地址，防止内部信息泄露
-# 配置示例：
-# not.trust.host = localhost,127.0.0.1,0.0.0.0,192.168.*,10.*,172.16.*,172.17.*,172.18.*,172.19.*,172.20.*,172.21.*,172.22.*,172.23.*,172.24.*,172.25.*,172.26.*,172.27.*,172.28.*,172.29.*,172.30.*,172.31.*
-not:
-  trust:
-    host: "${KK_NOT_TRUST_HOST:default}"
-
-# 禁止访问的文件类型，安全限制
-# 支持动态配置，格式：exe,dll,dat
-prohibit: "${KK_PROHIBIT:exe,dll,dat}"
-
-# 是否忽略SSL证书验证，默认为true（忽略）
-# 用于开发环境或自签名证书场景
-# 生产环境建议设置为false，启用完整的证书验证
-kk:
-  ignore:
-    ssl: false
-  enable:
-
-    # 是否启用URL重定向功能，默认为true（启用）
-    # 用于处理文件下载、外部资源引用等场景
-    redirect: false
-
-
-  ###############################################################################
-  # 十二、权限与认证配置（支持动态配置）
-  ###############################################################################
-
-  # 是否启用图片预览权限，默认为true（启用）
-  # 设置为false可禁用所有图片预览功能
-  Picturespreview: true
-
-  # 是否启用跨域文件获取权限，默认为true（启用）
-  Getcorsfile: true
-
-  # 是否启用添加异步任务权限，默认为true（启用）
-  # 大文件转换通常使用异步任务处理
-  addTask: true
-
-  # API密钥功能，默认为false（禁用）
-  # 启用后需要提供密钥才能调用API
-  key: false
-
-
-  ###############################################################################
-  # 十三、高级功能与兼容性配置（支持动态配置）
-  ###############################################################################
-
-  # 异步配置刷新定时时间（秒）
-  refreshschedule: "2"
-
-  # 首页是否显示AES密钥 默认为false（禁用）
-  isshowaeskey: false
-
-  # 是否允许XLSX编辑
-  xlsxallowedit: false
-
-  # 是否显示XLSX工具栏
-  xlsxshowtoolbar: false
-
-  # 首页是否显示key密钥 默认为false（禁用）
-  isshowkey: false
-
-  # 预览html文件 是否在隔离沙箱中启用JavaScript，默认为false（禁用）
-  scriptjs: false
-
-
-###############################################################################
-# 九、水印配置（支持动态配置）
-###############################################################################
-
-# 水印文本内容
-# 可以通过环境变量 WATERMARK_TXT 覆盖
-watermark:
-  txt: "${WATERMARK_TXT:}"
-  x:
-
-    # 水印X轴间距
-    # 可以通过环境变量 WATERMARK_X_SPACE 覆盖
-    space: "${WATERMARK_X_SPACE:10}"
-  y:
-
-    # 水印Y轴间距
-    # 可以通过环境变量 WATERMARK_Y_SPACE 覆盖
-    space: "${WATERMARK_Y_SPACE:10}"
-
-  # 水印字体
-  # 可以通过环境变量 WATERMARK_FONT 覆盖
-  font: "${WATERMARK_FONT:微软雅黑}"
-
-  # 水印字体大小
-  # 可以通过环境变量 WATERMARK_FONTSIZE 覆盖
-  fontsize: "${WATERMARK_FONTSIZE:18px}"
-
-  # 水印颜色
-  # 可以通过环境变量 WATERMARK_COLOR 覆盖
-  color: "${WATERMARK_COLOR:black}"
-
-  # 水印透明度，0.0-1.0
-  # 可以通过环境变量 WATERMARK_ALPHA 覆盖
-  alpha: "${WATERMARK_ALPHA:0.2}"
-
-  # 水印宽度
-  # 可以通过环境变量 WATERMARK_WIDTH 覆盖
-  width: "${WATERMARK_WIDTH:180}"
-
-  # 水印高度
-  # 可以通过环境变量 WATERMARK_HEIGHT 覆盖
-  height: "${WATERMARK_HEIGHT:80}"
-
-  # 水印旋转角度
-  # 可以通过环境变量 WATERMARK_ANGLE 覆盖
-  angle: "${WATERMARK_ANGLE:10}"
-
-
-###############################################################################
-# 十、FTP文件访问配置（支持动态配置）
-###############################################################################
-
-# FTP模块设置
-# 预览源为FTP时，可在ftp url后面加参数?ftp.username=ftpuser&ftp.password=123456&ftp.control.encoding=GBK,指定,不指定默认用配置的 (为了安全我们强烈建议在配置中设置相关信息)
-# ftp.control.encodin (根据FTP服务器操作系统选择，Linux一般为UTF-8，Windows一般为GBK)
-# 使用方法,支持,分割第一个是域名或者IP地址后面是用户名在后面是密码,在后面是编码(用户名密码和编码用:分割, 域名用,分割),切记url不需要任何协议头
-# ftp.username = 地址:端口:用户名:密码:编码,192.168.0.2:21:name:123456:UTF-8,www.xxx.com:21:admin:pass:UTF-8  多客户端,分割
-# ftp.username =10.99.1.2:21:666:88888:GBK
-ftp:
-  username: false
-
-
-###############################################################################
-# 十一、首页与文件管理配置（支持动态配置）
-###############################################################################
-
-# 网站备案信息，显示在首页底部，默认为空
-beian: "${KK_BEIAN:default}"
-
-# 首页初始化加载的页码，默认为1（第一页）
-home:
-  pagenumber: "${DEFAULT_HOME_PAGENUMBER:1}"
-
-  # 首页每页显示的文件数量，默认为20
-  pagesize: "${DEFAULT_HOME_PAGSIZE:20}"
-
-# 文件删除验证配置
-# 是否启用验证码验证删除文件，默认为false（不启用）
-# 启用后删除文件需要输入验证码，防止误删
-delete:
-  captcha: "${KK_DELETE_CAPTCHA:false}"
-
-  # 删除文件密码，默认为false（禁用删除接口）
-  # 如需启用删除功能，请通过环境变量或外部配置设置独立的强密码
-  password: "${KK_DELETE_PASSWORD:false}"
-  source:
-
-    # 是否删除转换后的源文件，默认为true（删除）
-    # 启用可节约磁盘空间，但会丢失原始文件
-    file: "${KK_DELETE_SOURCE_FILE:true}"
-
-# AES加密密钥，必须为16位字符
-# 启用AES加密时，接入方需使用相同的密钥
-# 用于敏感数据传输加密
-aes:
-  key: "1234567890123456"
-
-# Basic认证配置，格式：域名:用户名:密码，多个用逗号分隔
-# 用于保护特定域名的访问
-# 示例：192.168.0.1:admin:pass123,example.com:user:pass456
-basic:
-  name: false
-
-# User-Agent验证字符串，默认不启用
-# 可用于简单的客户端验证
-useragent: false
-
-
-###############################################################################
-# 十四、文件类型分类配置（支持动态配置）
-###############################################################################
-
-# 纯文本文件类型，直接显示
-simText: "${KK_SIMTEXT:txt,html,htm,asp,jsp,xml,json,properties,md,gitignore,log,java,py,c,cpp,sql,sh,bat,m,bas,prg,cmd}"

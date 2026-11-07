@@ -27,9 +27,9 @@
 # 可用环境变量覆盖：NACOS_CONFIG_DATA_ID / NACOS_CONFIG_GROUP / NACOS_CONFIG_FILE_EXTENSION
 #   / NACOS_SERVER_ADDR / NACOS_NAMESPACE / NACOS_USERNAME / NACOS_PASSWORD（勿提交真实密码）
 #
-# 同名 key：nacos profile 下 Nacos 覆盖本地 application.yml。
+# 同名 key：nacos profile 下以 Nacos kkfileview.yml 为 source of truth。
 # ConfigRefreshComponent 在此 profile 下从 Environment 读配置并跳过本地 YAML 热加载覆盖。
-# 无 nacos profile 时仍用同目录 application.yml 作为完整本地回退，预览可直接启动。
+# 无 nacos profile 时本地 application.yml 只有启动/连接默认值，业务键走 ConfigConstants。
 ###############################################################################
 
 spring:
