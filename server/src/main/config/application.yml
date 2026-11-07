@@ -6,7 +6,8 @@
 spring:
   application:
     name: "${SPRING_APPLICATION_NAME:kkfileview}"
-  # Nacos 配置导入写在 application-nacos.yml，请用 --spring.profiles.active=nacos，不要只改 enabled。
+  # Nacos 配置导入写在 application-nacos.yml（dataId=kkfileview.yml，YAML）。
+  # 请用 --spring.profiles.active=nacos，不要只改 enabled。无该 profile 时本文件是完整本地回退。
   servlet:
     multipart:
 
@@ -57,6 +58,10 @@ spring:
   #                            或 SPRING_PROFILES_ACTIVE=cse
   # 见同目录 application-nacos.yml / application-cse.yml。
   #
+  # nacos profile 下业务配置以 Nacos 为准（已发布 dataId=kkfileview.yml，
+  # group=DEFAULT_GROUP，public 空 namespace，type=yaml）。同名 key Nacos 覆盖本文件。
+  # 无 nacos profile 时本文件仍是完整本地配置，不依赖 Nacos 即可预览。
+  #
   # 不要只改下面的 *.enabled / 环境变量。原因：
   #   - Nacos 的 spring.config.import 只写在 nacos profile 里，没有它配置中心不会拉配置
   #   - register-enabled 默认 false：即使误开 discovery.enabled 也不会向 Nacos 注册
@@ -80,6 +85,9 @@ spring:
       config:
 
         # ---------- Nacos 配置中心（默认关闭；nacos profile 会打开）----------
+        # 与控制台已发布配置对齐：dataId=kkfileview.yml（YAML），group=DEFAULT_GROUP。
+        # file-extension=yaml 表示按 YAML 解析；实际拉取的 dataId 由
+        # application-nacos.yml 的 spring.config.import 指定为 kkfileview.yml。
         enabled: false
         import-check:
           enabled: false
@@ -87,7 +95,7 @@ spring:
         refresh-enabled: true
         namespace: "${NACOS_NAMESPACE:}"
         group: "${NACOS_CONFIG_GROUP:DEFAULT_GROUP}"
-        file-extension: "${NACOS_CONFIG_FILE_EXTENSION:properties}"
+        file-extension: "${NACOS_CONFIG_FILE_EXTENSION:yaml}"
         prefix: "${NACOS_CONFIG_PREFIX:kkfileview}"
       discovery:
         # ---------- Nacos 服务注册 / 发现（默认关闭；nacos profile 会打开）----------
@@ -185,6 +193,10 @@ management:
 
 ###############################################################################
 # 二、Office文档处理配置（部分支持动态配置）
+#
+# 以下业务开关（office / pdf / cache / trust.host / watermark 等）是无 profile 时的本地回退。
+# --spring.profiles.active=nacos 时以 Nacos dataId=kkfileview.yml 为 source of truth；
+# 同名 key 远程优先（ConfigRefreshComponent 跳过本地 YAML 覆盖）。
 ###############################################################################
 
 # Office组件安装路径，默认为自动查找
