@@ -59,7 +59,9 @@ spring:
   # 见同目录 application-nacos.yml / application-cse.yml。
   #
   # nacos profile 下业务配置以 Nacos 为准（已发布 dataId=kkfileview.yml，
-  # group=DEFAULT_GROUP，public 空 namespace，type=yaml）。同名 key Nacos 覆盖本文件。
+  # group=DEFAULT_GROUP，type=yaml）。本机 Nacos 使用命名空间 showName=dev，
+  # namespace ID（tenant）=4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e；public 为空。
+  # 同名 key Nacos 覆盖本文件。
   # 无 nacos profile 时本文件仍是完整本地配置，不依赖 Nacos 即可预览。
   #
   # 不要只改下面的 *.enabled / 环境变量。原因：
@@ -78,7 +80,8 @@ spring:
 
       # ---------- Nacos 公共连接（config / discovery 共用；仅地址/账号可用环境变量覆盖）----------
       # 示例：127.0.0.1:8848  或  nacos.example.com:8848
-      # SCA 2025.0.x 使用 public / 空 namespace 时，Nacos Server 需 3.x
+      # 默认连本机 Nacos 2.5.5 的 dev 命名空间（showName=dev，ID 见 namespace）。
+      # public 为空；SCA 2025.0.x 若改回 public / 空 namespace，Nacos Server 需 3.x。
       server-addr: "${NACOS_SERVER_ADDR:127.0.0.1:8848}"
       username: "${NACOS_USERNAME:}"
       password: "${NACOS_PASSWORD:}"
@@ -93,7 +96,7 @@ spring:
           enabled: false
         fail-fast: false
         refresh-enabled: true
-        namespace: "${NACOS_NAMESPACE:}"
+        namespace: "${NACOS_NAMESPACE:4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e}"
         group: "${NACOS_CONFIG_GROUP:DEFAULT_GROUP}"
         file-extension: "${NACOS_CONFIG_FILE_EXTENSION:yaml}"
         prefix: "${NACOS_CONFIG_PREFIX:kkfileview}"
@@ -104,7 +107,7 @@ spring:
         enabled: false
         register-enabled: false
         fail-fast: false
-        namespace: "${NACOS_NAMESPACE:}"
+        namespace: "${NACOS_NAMESPACE:4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e}"
         group: "${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}"
         server-addr: "${NACOS_SERVER_ADDR:127.0.0.1:8848}"
         username: "${NACOS_USERNAME:}"
