@@ -26,6 +26,10 @@ class NacosConfigImportDefaultsTest {
                 "nacos profile must not default to kkfileview.properties");
         assertTrue(yaml.contains("http://127.0.0.1:8848/nacos"));
         assertTrue(yaml.contains("startup.cmd -m standalone"));
+        assertTrue(yaml.contains("namespace showName：dev"),
+                "comments must distinguish Nacos showName dev from the namespace ID");
+        assertTrue(yaml.contains("4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e"),
+                "nacos profile comments must record the local dev namespace ID");
     }
 
     @Test
@@ -38,5 +42,11 @@ class NacosConfigImportDefaultsTest {
         assertTrue(yaml.contains("nacos profile 下业务配置以 Nacos 为准"));
         assertTrue(yaml.contains("默认全部关闭"),
                 "nacos stays off unless --spring.profiles.active=nacos");
+        assertTrue(yaml.contains("NACOS_NAMESPACE:4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e"),
+                "config and discovery must default to the local Nacos dev namespace ID");
+        assertFalse(yaml.contains("NACOS_NAMESPACE:}"),
+                "namespace default must not be empty public");
+        assertTrue(yaml.contains("showName=dev"),
+                "comments must mention namespace showName dev versus ID");
     }
 }

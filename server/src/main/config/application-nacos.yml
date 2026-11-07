@@ -20,7 +20,9 @@
 #   控制台：http://127.0.0.1:8848/nacos
 #   dataId：kkfileview.yml
 #   group：DEFAULT_GROUP
-#   namespace / tenant：空（public）
+#   namespace showName：dev
+#   namespace ID（tenant）：4529b5c0-a7c0-4891-b735-a1c7d0bc0a8e
+#   public 为空；切回 public 时把 NACOS_NAMESPACE 设成空字符串
 #   type：yaml
 # 可用环境变量覆盖：NACOS_CONFIG_DATA_ID / NACOS_CONFIG_GROUP / NACOS_CONFIG_FILE_EXTENSION
 #   / NACOS_SERVER_ADDR / NACOS_NAMESPACE / NACOS_USERNAME / NACOS_PASSWORD（勿提交真实密码）
