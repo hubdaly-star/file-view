@@ -6,7 +6,8 @@
 # 本 profile 会同时打开：
 #   - spring.cloud.discovery.enabled
 #   - spring.cloud.servicecomb.discovery.enabled   CSE 发现 + 注册本实例
-# CSE 配置中心保持关闭（业务配置仍用本地 YAML；Nacos 才是配置中心）。
+# CSE 配置中心保持关闭。业务配置在 Nacos dataId=kkfileview.yml（需 nacos profile）；
+# 无 Nacos 时走 ConfigConstants 代码默认。
 #
 # 请先把 CSE 注册中心地址、应用名、AK/SK 占位符换成实际值（勿提交真实密钥）。
 # 不要与 nacos profile 一起激活：两个 ServiceRegistry 会在启动时 fail-fast。

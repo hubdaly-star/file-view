@@ -23,7 +23,10 @@ import java.util.concurrent.*;
  * <p>Contract:
  * <ul>
  *   <li>Local-only (default): {@code @Value} injects Environment, then this component
- *       re-reads {@code config/application.yml} and watches it for hot reload.</li>
+ *       re-reads {@code config/application.yml} and watches it for hot reload.
+ *       That file is boot/connection only; missing business keys use
+ *       {@link ConfigConstants} defaults. Full preview settings live in Nacos
+ *       {@code kkfileview.yml} (namespace {@code dev}).</li>
  *   <li>Nacos profile: skip the YAML overwrite so Nacos-backed Environment values win
  *       (published dataId {@code kkfileview.yml}); listen for {@link EnvironmentChangeEvent}
  *       to refresh static fields. Same keys: Nacos over local {@code application.yml}.</li>

@@ -11,6 +11,9 @@ class ConfigRefreshComponentNacosBridgeTest {
 
     @Test
     void nacosConfigOffUsesLocalFilePath() {
+        // Local application.yml is boot/connection only. Without the nacos profile,
+        // ConfigRefreshComponent still watches that file; missing business keys
+        // keep ConfigConstants / @Value defaults instead of a full YAML fallback.
         MockEnvironment environment = new MockEnvironment();
         ConfigRefreshComponent component = new ConfigRefreshComponent(environment);
         assertFalse(component.isNacosConfigEnabled());
